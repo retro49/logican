@@ -303,7 +303,7 @@ impl Evaluate<crate::obj::Object> for crate::ast::ASTBinary {
                     }
 
                     crate::token::TokenKind::BiImplication => {
-                        if (l == true && r == true) || (l == false && r == true) {
+                        if (l == true && r == true) || (l == false && r == false) {
                             return Ok(crate::obj::Object::Boolean(true));
                         } else {
                             return Ok(crate::obj::Object::Boolean(false));
