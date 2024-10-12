@@ -1,0 +1,32 @@
+/// THE BEGINNING
+///
+/// This is a toy project for proofing 
+/// some logical arguments and mathematical statements.
+
+/// all source must begin with theorem
+theorem genesis {
+    // variable declerations begin with let
+    let var_1 = 0;
+    let var_2 = 1;
+    /// constant declerations
+    constant unequal = var_1 < var_2;
+    /// creating statements
+    /// statement without any annotation
+    statement alpha = true;
+    /// statement with whatever annotation
+    statement omega = ... is false;
+    /// statement with annotation
+    statement equal = "alpha is first omega is last" is true;
+
+    /// proofing the statement
+    /// If the statement to be proofed is false 
+    /// then the process will eject the source and panics
+    /// therefore every proof must be true.
+    proof (alpha /\ !omega) == equal;
+
+    /// print things
+    print alpha;
+    print omega;
+    
+    /// other features are being implemented...
+}
