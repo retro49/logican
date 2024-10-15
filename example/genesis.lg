@@ -1,8 +1,6 @@
 /// THE BEGINNING
-///
 /// This is a toy project for proofing 
 /// some logical arguments and mathematical statements.
-
 /// all source must begin with theorem
 theorem genesis {
     // variable declerations begin with let
@@ -11,8 +9,13 @@ theorem genesis {
     /// constant declerations
     constant unequal = var_1 < var_2;
 
+    function is_zero(x) = x == 0;
+    function is_one(x) = x == 1;
+    function f(x) = x + 1;
+    function opposite(x) = !x;
+
     statement beginning = "THE BEGINNING" is true;
-    statement ending = ... is false;
+    statement ending = is_zero(f(0)) == opposite(false);
 
     /// nested theorems
     theorem alpha {

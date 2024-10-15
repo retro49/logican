@@ -41,7 +41,7 @@
  * POWER               -> UNARY ( ("^") UNARY) * ;
  * UNARY               -> ("-") UNARY
  *                        | PRIMARY ;
- *
+ * CALL                -> literal ( "(" arguments? ")" )*
  * PRIMARY             -> REAL
  *                        | INTEGER
  *                        | BOOLEAN
@@ -157,6 +157,12 @@ pub struct ASTUnary {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ASTCall {
+    pub literal: std::rc::Rc<ASTExpression>,
+    pub expressions: Vec<ASTExpression>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum ASTExpression {
     BinaryExpreesion(ASTBinary),
     UnaryExpreesion(ASTUnary),
@@ -166,6 +172,7 @@ pub enum ASTExpression {
     Literal(ASTLiteral),
     String(ASTString),
     Group(ASTGroup),
+    Call(ASTCall),
 }
 
 #[derive(Debug, Clone, PartialEq)]

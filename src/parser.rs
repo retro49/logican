@@ -1,6 +1,6 @@
 use crate::ast::{
-    ASTBinary, ASTBoolean, ASTConstantStmt, ASTExpression, ASTFunction, ASTGroup, ASTInteger,
-    ASTLetStmt, ASTLiteral, ASTParameter, ASTPrintStmt, ASTProof, ASTReal, ASTSolution,
+    ASTBinary, ASTBoolean, ASTCall, ASTConstantStmt, ASTExpression, ASTFunction, ASTGroup,
+    ASTInteger, ASTLetStmt, ASTLiteral, ASTParameter, ASTPrintStmt, ASTProof, ASTReal, ASTSolution,
     ASTStatement, ASTStatementDecl, ASTStmt, ASTString, ASTTheorem, ASTUnary,
 };
 
@@ -486,6 +486,7 @@ impl<'a> Parser<'a> {
 
     fn parse_exp_unary(&mut self) -> Anyhow<ASTExpression> {
         use crate::token::TokenKind as kind;
+
         if self.current.kind == kind::Minus || self.current.kind == kind::Negation {
             let op = self.current.kind.clone();
             self.advance();
@@ -495,8 +496,39 @@ impl<'a> Parser<'a> {
                 right: std::boxed::Box::new(right),
             }));
         } else {
-            return self.parse_exp_primary();
+            return self.parse_call();
         }
+    }
+
+    fn parse_call(&mut self) -> Anyhow<ASTExpression> {
+        let literal_expression = self.parse_exp_primary()?;
+        match literal_expression {
+            crate::ast::ASTExpression::Literal(_) => {
+                if self.current.kind == crate::token::TokenKind::LeftParenthesis {
+                    self.advance();
+                    // parse expressions
+                    let mut expressions = Vec::new();
+                    while self.current.kind != crate::token::TokenKind::RightParethesis {
+                        let exps = self.parse_expression()?;
+                        expressions.push(exps);
+                        if self.current.kind == crate::token::TokenKind::RightParethesis {
+                            break;
+                        }
+                        self.expect(crate::token::TokenKind::Comma)?;
+                    }
+                    self.expect(crate::token::TokenKind::RightParethesis)?;
+                    return Ok(crate::ast::ASTExpression::Call(ASTCall {
+                        literal: std::rc::Rc::new(literal_expression),
+                        expressions,
+                    }));
+                } else {
+                    return Ok(literal_expression);
+                }
+            }
+            _ => {
+                return Ok(literal_expression);
+            }
+        };
     }
 
     fn parse_exp_primary(&mut self) -> Anyhow<ASTExpression> {

@@ -340,6 +340,40 @@ impl Evaluate<crate::obj::Object> for crate::ast::ASTExpression {
                     panic!("unkown literal, {}", l.literal);
                 }
             }
+            crate::ast::ASTExpression::Call(ref call) => {
+                match &call.literal.as_ref() {
+                    crate::ast::ASTExpression::Literal(ref _lit) => {
+                        let function = env.get(&_lit.literal).cloned().unwrap();
+                        match &function {
+                            crate::obj::Object::Function(ref _lit, ref params, ref exp) => {
+                                if call.expressions.len() != (&params).len() {
+                                    unreachable!()
+                                }
+                                let mut fn_env = Environment::default();
+                                let len = call.expressions.len();
+                                for i in 0..len {
+                                    let exp_pos = &call.expressions[i]
+                                        .clone()
+                                        .evaluate(env)
+                                        .unwrap();
+
+                                    let par_name = (&params[i]).literal.literal.clone();
+                                    fn_env.env.insert(par_name, exp_pos.clone());
+                                }
+                                let res = exp.clone().evaluate(&mut fn_env);
+                                return res;
+                            }
+
+                            _ => {
+                                unreachable!()
+                            }
+                        };
+                    }
+                    _ => {
+                    }
+                };
+                unreachable!()
+            }
         };
     }
 }
@@ -438,15 +472,7 @@ impl Evaluator {
                             println!("statement {} declared before", &s.identifier.literal);
                             panic!();
                         }
-
-                        match &s.decl {
-                            crate::ast::ASTStatementDecl::None | crate::ast::ASTStatementDecl::Etcetera => {
-                                self.env.env.insert(s.identifier.literal.clone(), crate::obj::Object::Boolean(b));
-                            }
-                            crate::ast::ASTStatementDecl::String(_sd) => {
-                                self.env.env.insert(s.identifier.literal.clone(), crate::obj::Object::Boolean(b));
-                            }
-                        };
+                        self.env.env.insert(s.identifier.literal.clone(), crate::obj::Object::Boolean(b));
                     }
 
                     _ => {
@@ -460,10 +486,9 @@ impl Evaluator {
                 self.eval_theorem(t);
             }
 
-            _ => { 
-                println!("hey there, I have no idea what I am doing!");
+            crate::ast::ASTStmt::Function(f) => {
+                self.env.env.insert(f.identifier.literal.clone(), crate::obj::Object::Function(f.identifier.clone(), f.params.clone(), f.expression.clone()));
             }
-
         };
     }
 }
