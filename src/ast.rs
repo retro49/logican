@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::token::Token;
 
 /**
@@ -13,11 +15,11 @@ use crate::token::Token;
  *                        | THEOREM_DECLERATION
  *                        ;
  *
- * THEOREM_DECLERATION    -> "theorem" BLOCK ;
  * STATEMENT_DECLERATION  -> "statement" ID "=" STATEMENT_SPEC_EXPRESSION ";" ;
  * FUNCTION_DECLERATION   -> "function" ID "(" PARAMS? ")" = EXPRESSION ";" ;
  * LET_DECLERATION        -> "let" ID "=" EXPRESSION ";" ;
  * CONSTANT_DECLERATION   -> "constant" ID "=" EXPRESSION ";" ;
+ * THEOREM_DECLERATION    -> "theorem" BLOCK_STMT;
  *
  * STATEMENT_SPEC_EXPRESSION -> "..." "is" BOOLEAN
  *                              | STRING "is" BOOLEAN
@@ -26,13 +28,15 @@ use crate::token::Token;
  * STMT                -> PRINT_STMT
  *                        | PROOF_STMT
  *                        | EXPRESSION_STMT
- *                        | BLOCK
+ *                        | BLOCK_STMT
+ *                        | NULL_STMT
  *                        ;
  *
- * BLOCK               -> "{" (DECLERATION|STMT)* "}" 
+ * BLOCK_STMT          -> "{" (DECLERATION|STMT)* "}" 
  * PRINT_STMT          -> "print" EXPRESSION ;
  * PROOF_STMT          -> "proof" EXPRESSION ;
  * EXPRESSION_STMT     -> EXPRESSION ";" ;
+ * NULL_STMT           -> ";" ;
  *
  * PARAMS              -> ID ("," ID)*
  *
@@ -58,17 +62,18 @@ use crate::token::Token;
  *                        ;
  *
  * BOOLEAN             -> "true" | "false" ;
+ *
  */
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTSolution {
-    pub theorems: Vec<ASTDeclStmt>,
+    pub solutions: Vec<ASTDeclStmt>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ASTDeclStmt {
     Decleration(ASTDecleration),
-    Statement(ASTStatement),
+    Statement(ASTStmt),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -78,29 +83,29 @@ pub struct ASTBlockStmt {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTTheorem {
-    pub token: Token,
+    pub token: Rc<Token>,
     pub theorem_name: ASTLiteral,
-    pub statements: Vec<ASTDeclStmt>,
+    pub block: ASTBlockStmt,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTStatement {
-    pub token: Token,
+    pub token: Rc<Token>,
     pub identifier: ASTLiteral,
-    pub decl: ASTStatementSpecExpression,
+    pub spec_expression: ASTStatementSpecExpression,
     pub expression: ASTExpression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ASTStatementSpecExpression{
     Etcetera,
-    String(ASTString),
+    String(ASTExpression),
     None,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTFunction {
-    pub token: Token,
+    pub token: Rc<Token>,
     pub identifier: ASTLiteral,
     pub params: Vec<ASTParameter>,
     pub expression: ASTExpression,
@@ -113,28 +118,28 @@ pub struct ASTParameter {
 
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ASTLetStmt {
-    pub token: Token,
+pub struct ASTLet{
+    pub token: Rc<Token>,
     pub identifier: ASTLiteral,
     pub expression: ASTExpression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ASTConstantStmt {
-    pub token: Token,
+pub struct ASTConstant{
+    pub token: Rc<Token>,
     pub identifier: ASTLiteral,
     pub expression: ASTExpression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ASTPrintStmt {
-    pub token: Token,
+pub struct ASTPrint{
+    pub token: Rc<Token>,
     pub expression: ASTExpression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTProof {
-    pub token: Token,
+    pub token: Rc<Token>,
     pub expression: ASTExpression,
 }
 
@@ -165,21 +170,21 @@ pub struct ASTString {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTGroup {
-    pub expression: std::boxed::Box<ASTExpression>,
+    pub expression: std::rc::Rc<ASTExpression>,
 }
 
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTBinary {
-    pub left: std::boxed::Box<ASTExpression>,
+    pub left: std::rc::Rc<ASTExpression>,
     pub op: crate::token::TokenKind,
-    pub right: std::boxed::Box<ASTExpression>,
+    pub right: std::rc::Rc<ASTExpression>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTUnary {
     pub op: crate::token::TokenKind,
-    pub right: std::boxed::Box<ASTExpression>,
+    pub right: std::rc::Rc<ASTExpression>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -204,15 +209,17 @@ pub enum ASTExpression {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ASTStmt {
     Proof(ASTProof),
-    Print(ASTPrintStmt),
+    Print(ASTPrint),
+    Block(ASTBlockStmt),
+    ExpressionStmt(ASTExpression),
     Null,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ASTDecleration {
     Theorem(ASTTheorem),
-    Let(ASTLetStmt),
-    Constant(ASTConstantStmt),
+    Let(ASTLet),
+    Constant(ASTConstant),
     Statement(ASTStatement),
     Function(ASTFunction),
 }

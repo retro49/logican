@@ -3,8 +3,8 @@ extern crate logican as lg;
 fn start_logican(buff: &Vec<u8>) {
     let mut lexer = lg::lexer::Lexer::new(buff.as_ref());
     let mut prsr = lg::parser::Parser::new(&mut lexer);
-    let mut res = prsr.parse_solution().unwrap();
-    lg::eval::Evaluator::default().eval(&mut res);
+    let mut _res = prsr.parse_solution().unwrap();
+    // lg::eval::Evaluator::default().eval(&mut res);
 }
 
 fn main() {

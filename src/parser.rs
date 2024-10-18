@@ -1,10 +1,32 @@
-use crate::ast::{
-    ASTBinary, ASTBoolean, ASTCall, ASTConstantStmt, ASTExpression, ASTFunction, ASTGroup,
-    ASTInteger, ASTLetStmt, ASTLiteral, ASTParameter, ASTPrintStmt, ASTProof, ASTReal, ASTSolution,
-    ASTStatement, ASTStatementDecl, ASTStmt, ASTString, ASTTheorem, ASTUnary,
-};
+use std::rc::Rc;
 
-use crate::table::{SymbolTable, Type};
+use crate::ast::ASTBinary;
+use crate::ast::ASTBlockStmt;
+use crate::ast::ASTBoolean;
+use crate::ast::ASTCall;
+use crate::ast::ASTConstant;
+use crate::ast::ASTDeclStmt;
+use crate::ast::ASTDecleration;
+use crate::ast::ASTExpression;
+use crate::ast::ASTFunction;
+use crate::ast::ASTGroup;
+use crate::ast::ASTInteger;
+use crate::ast::ASTLet;
+use crate::ast::ASTLiteral;
+use crate::ast::ASTParameter;
+use crate::ast::ASTPrint;
+use crate::ast::ASTProof;
+use crate::ast::ASTReal;
+use crate::ast::ASTSolution;
+use crate::ast::ASTStatement;
+use crate::ast::ASTStatementSpecExpression;
+use crate::ast::ASTStmt;
+use crate::ast::ASTString;
+use crate::ast::ASTTheorem;
+use crate::ast::ASTUnary;
+
+use crate::table::SymbolTable;
+use crate::table::Type;
 
 #[derive(Debug)]
 pub struct ParserError {
@@ -13,7 +35,7 @@ pub struct ParserError {
 
 impl std::fmt::Display for ParserError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ParserError {{ msg: {} }}", self.msg))
+        f.write_fmt(format_args!("ParserError {{ error: {} }}", self.msg))
     }
 }
 
@@ -22,17 +44,18 @@ impl std::error::Error for ParserError {}
 type Anyhow<T> = Result<T, ParserError>;
 
 pub struct Parser<'a> {
-    current: crate::token::Token,
-    peek: crate::token::Token,
+    current: Rc<crate::token::Token>,
+    peek: Rc<crate::token::Token>,
     lexer: &'a mut crate::lexer::Lexer<'a>,
     errors: Vec<String>,
     table: SymbolTable,
 }
 
 impl<'a> Parser<'a> {
+    /// creates a new instance of the parser
     pub fn new(lxr: &'a mut crate::lexer::Lexer<'a>) -> Parser<'a> {
-        let current = lxr.next();
-        let peek = lxr.next();
+        let current = Rc::new(lxr.next());
+        let peek = Rc::new(lxr.next());
 
         Parser {
             current,
@@ -43,200 +66,144 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn advance(&mut self) {
-        self.current = std::mem::take(&mut self.peek);
-        self.peek = self.lexer.next();
+    fn advance(&mut self) {
+        self.current = Rc::clone(&self.peek);
+        self.peek = Rc::new(self.lexer.next());
     }
 
     pub fn parse_solution(&mut self) -> Anyhow<ASTSolution> {
-        let mut sol = Vec::new();
-        while self.current.kind != crate::token::TokenKind::Eof {
-            match self.parse_thorem() {
-                Ok(r) => {
-                    sol.push(r);
-                }
+        use crate::token::TokenKind as kind;
+        let mut solutions = Vec::<ASTDeclStmt>::new();
 
-                Err(e) => {
-                    return Err(ParserError { msg: e.to_string() });
-                }
-            };
+        while self.current.kind != kind::Eof {
+            solutions.push(self.parse_decl_stmt()?);
         }
 
-        Ok(ASTSolution { theorems: sol })
+        return Ok(ASTSolution { solutions });
     }
 
-    pub fn parse_thorem(&mut self) -> Anyhow<ASTTheorem> {
+    fn parse_decl_stmt(&mut self) -> Anyhow<ASTDeclStmt> {
         use crate::token::TokenKind as kind;
+        match self.current.kind {
+            kind::Statement | kind::Function | kind::Let | kind::Constant | kind::Theorem => {
+                return Ok(ASTDeclStmt::Decleration(self.parse_decl()?));
+            }
 
-        let mut statements = Vec::new();
-
-        self.expect(kind::Theorem)?;
-        let theorem_name = self.parse_literal()?;
-        self.expect(kind::LeftBrace)?;
-
-        while self.current.kind != kind::RightBrace {
-            statements.push(self.parse_stmt()?);
-        }
-
-        self.expect(kind::RightBrace)?;
-        self.table
-            .table
-            .insert(theorem_name.literal.clone(), Type::Theorem);
-        Ok(ASTTheorem {
-            theorem_name,
-            statements,
-        })
-    }
-
-    pub fn parse_literal(&mut self) -> Anyhow<ASTLiteral> {
-        use crate::token::TokenKind as kind;
-
-        let literal = self.current.literal.clone();
-        self.expect(kind::Literal)?;
-        return Ok(ASTLiteral { literal });
-    }
-
-    pub fn parse_stmt(&mut self) -> Anyhow<ASTStmt> {
-        use crate::token::TokenKind as kind;
-
-        while self.current.kind != kind::Semicolon {
-            match self.current.kind {
-                kind::Theorem => {
-                    return Ok(ASTStmt::Theorem(self.parse_thorem()?));
-                }
-
-                kind::Let => {
-                    return Ok(ASTStmt::Let(self.parse_let_stmt()?));
-                }
-                kind::Constant => {
-                    return Ok(ASTStmt::Constant(self.parse_constant_stmt()?));
-                }
-
-                kind::Proof => {
-                    return Ok(ASTStmt::Proof(self.parse_proof_stmt()?));
-                }
-
-                kind::Statement => {
-                    return Ok(ASTStmt::Statement(self.parse_statement_stmt()?));
-                }
-
-                kind::Function => {
-                    return Ok(ASTStmt::Function(self.parse_function_stmt()?));
-                }
-
-                kind::Print => {
-                    return Ok(ASTStmt::Print(self.parse_print_stmt()?));
-                }
-
-                _ => {
-                    self.record_error_current(std::fmt::format(format_args!(
-                        "expected any statement but found {:?}",
-                        self.current
-                    )));
-                    return Err(ParserError {
-                        msg: "no statement type found".to_string(),
-                    });
-                }
-            };
-        }
-
-        Ok(ASTStmt::Null)
-    }
-
-    fn parse_let_stmt(&mut self) -> Anyhow<ASTLetStmt> {
-        use crate::token::TokenKind as kind;
-        self.expect(kind::Let)?;
-        let identifier = self.parse_literal()?;
-        self.expect(kind::Assign)?;
-        let expression = self.parse_expression()?;
-        self.expect(kind::Semicolon)?;
-        self.table
-            .table
-            .insert(identifier.literal.clone(), Type::Variable);
-        Ok(ASTLetStmt {
-            identifier,
-            expression,
-        })
-    }
-
-    fn parse_constant_stmt(&mut self) -> Anyhow<ASTConstantStmt> {
-        use crate::token::TokenKind as kind;
-        self.expect(kind::Constant)?;
-        let identifier = self.parse_literal()?;
-        self.expect(kind::Assign)?;
-        let expression = self.parse_expression()?;
-        self.expect(kind::Semicolon)?;
-        self.table
-            .table
-            .insert(identifier.literal.clone(), Type::Constant);
-        Ok(ASTConstantStmt {
-            identifier,
-            expression,
-        })
-    }
-
-    fn parse_print_stmt(&mut self) -> Anyhow<ASTPrintStmt> {
-        use crate::token::TokenKind as kind;
-        self.expect(kind::Print)?;
-        let expression = self.parse_expression()?;
-        self.expect(kind::Semicolon)?;
-        Ok(ASTPrintStmt { expression })
-    }
-
-    fn parse_statement_stmt(&mut self) -> Anyhow<ASTStatement> {
-        use crate::token::TokenKind as kind;
-
-        self.expect(kind::Statement)?;
-        let identifier = ASTLiteral {
-            literal: self.current.literal.clone(),
+            _ => {
+                return Ok(ASTDeclStmt::Statement(self.parse_stmt()?));
+            }
         };
-        self.expect(kind::Literal)?;
+    }
+
+    fn parse_decl(&mut self) -> Anyhow<ASTDecleration> {
+        use crate::token::TokenKind as kind;
+
+        match self.current.kind {
+            kind::Statement => {
+                return Ok(ASTDecleration::Statement(self.parse_statement_decl()?));
+            }
+            kind::Function => {
+                return Ok(ASTDecleration::Function(self.parse_function_decl()?));
+            }
+            kind::Let => {
+                return Ok(ASTDecleration::Let(self.parse_let_decl()?));
+            }
+            kind::Constant => {
+                return Ok(ASTDecleration::Constant(self.parse_constant_decl()?));
+            }
+            kind::Theorem => {
+                return Ok(ASTDecleration::Theorem(self.parse_theorem_decl()?));
+            }
+
+            _ => {
+                return Err(ParserError {
+                    msg: "".to_string(),
+                });
+            }
+        };
+    }
+
+    fn parse_statement_decl(&mut self) -> Anyhow<ASTStatement> {
+        use crate::token::TokenKind as kind;
+
+        self.look_for(kind::Statement)?;
+        let token = Rc::clone(&self.current);
+        self.advance();
+
+        self.look_for(kind::Literal)?;
+        let identifier = self.parse_literal()?;
+
         self.expect(kind::Assign)?;
-        let decl = self.parse_statement_stmt_decl()?;
+
+        let spec_expression = self.parse_statement_spec_expression()?;
         let expression = self.parse_expression()?;
         self.expect(kind::Semicolon)?;
-        self.table
-            .table
-            .insert(identifier.literal.clone(), Type::Statement);
+
+        self.table.insert(Rc::clone(&token), Type::Statement);
 
         Ok(ASTStatement {
+            token,
             identifier,
-            decl,
+            spec_expression,
             expression,
         })
     }
 
-    fn parse_statement_stmt_decl(&mut self) -> Anyhow<ASTStatementDecl> {
+    fn parse_statement_spec_expression(&mut self) -> Anyhow<ASTStatementSpecExpression> {
         use crate::token::TokenKind as kind;
+
         match self.current.kind {
             kind::Etcetera => {
                 self.expect(kind::Etcetera)?;
                 self.expect(kind::Is)?;
-                return Ok(ASTStatementDecl::Etcetera);
+                return Ok(ASTStatementSpecExpression::Etcetera);
             }
+
             kind::String => {
-                let string = ASTString {
-                    string: self.current.literal.clone(),
-                };
-                self.expect(kind::String)?;
+                self.look_for(kind::String)?;
+                let string = self.parse_expression()?;
                 self.expect(kind::Is)?;
-                return Ok(ASTStatementDecl::String(string));
+                return Ok(ASTStatementSpecExpression::String(string));
             }
+
             _ => {
-                return Ok(ASTStatementDecl::None);
+                return Ok(ASTStatementSpecExpression::None);
             }
         };
     }
 
-    fn parse_proof_stmt(&mut self) -> Anyhow<ASTProof> {
+    fn parse_function_decl(&mut self) -> Anyhow<ASTFunction> {
         use crate::token::TokenKind as kind;
-        self.expect(kind::Proof)?;
+
+        self.look_for(kind::Function)?;
+        let token = Rc::clone(&self.current);
+        self.advance();
+        self.look_for(kind::Literal)?;
+        let identifier = self.parse_literal()?;
+        self.expect(kind::LeftParenthesis)?;
+        let params: Vec<ASTParameter>;
+        if self.current.kind == kind::RightParethesis {
+            self.advance();
+            params = Vec::new();
+        } else {
+            params = self.parse_function_decl_params()?;
+            self.expect(kind::RightParethesis)?;
+        }
+        self.expect(kind::Assign)?;
         let expression = self.parse_expression()?;
         self.expect(kind::Semicolon)?;
-        return Ok(ASTProof { expression });
+
+        self.table.insert(Rc::clone(&token), Type::Function);
+
+        Ok(ASTFunction {
+            token,
+            identifier,
+            params,
+            expression,
+        })
     }
 
-    fn parse_function_stmt_params(&mut self) -> Anyhow<Vec<ASTParameter>> {
+    fn parse_function_decl_params(&mut self) -> Anyhow<Vec<ASTParameter>> {
         use crate::token::TokenKind as kind;
 
         let mut params = Vec::new();
@@ -266,33 +233,128 @@ impl<'a> Parser<'a> {
         Ok(params)
     }
 
-    fn parse_function_stmt(&mut self) -> Anyhow<ASTFunction> {
+    fn parse_let_decl(&mut self) -> Anyhow<ASTLet> {
         use crate::token::TokenKind as kind;
 
-        self.expect(kind::Function)?;
+        self.look_for(kind::Let)?;
+        let token = Rc::clone(&self.current);
+        self.advance();
         let identifier = self.parse_literal()?;
-        self.expect(kind::LeftParenthesis)?;
-        let params: Vec<ASTParameter>;
-
-        if self.current.kind == kind::RightParethesis {
-            self.advance();
-            params = Vec::new();
-        } else {
-            params = self.parse_function_stmt_params()?;
-            self.expect(kind::RightParethesis)?;
-        }
-
         self.expect(kind::Assign)?;
         let expression = self.parse_expression()?;
         self.expect(kind::Semicolon)?;
-        self.table
-            .table
-            .insert(identifier.literal.clone(), Type::Function);
-        Ok(ASTFunction {
+        self.table.insert(Rc::clone(&token), Type::Let);
+
+        Ok(ASTLet {
+            token,
             identifier,
-            params,
             expression,
         })
+    }
+
+    fn parse_constant_decl(&mut self) -> Anyhow<ASTConstant> {
+        use crate::token::TokenKind as kind;
+
+        self.look_for(kind::Constant)?;
+        let token = Rc::clone(&self.current);
+        self.advance();
+        let identifier = self.parse_literal()?;
+        self.expect(kind::Assign)?;
+        let expression = self.parse_expression()?;
+        self.expect(kind::Semicolon)?;
+        self.table.insert(Rc::clone(&token), Type::Constant);
+
+        Ok(ASTConstant {
+            token,
+            identifier,
+            expression,
+        })
+    }
+
+    fn parse_theorem_decl(&mut self) -> Anyhow<ASTTheorem> {
+        use crate::token::TokenKind as kind;
+
+        self.look_for(kind::Theorem)?;
+        let token = Rc::clone(&self.current);
+        self.advance();
+        self.look_for(kind::Literal)?;
+        let theorem_name = self.parse_literal()?;
+
+        let block = self.parse_block_stmt()?;
+
+        Ok(ASTTheorem {
+            token,
+            theorem_name,
+            block,
+        })
+    }
+
+    fn parse_stmt(&mut self) -> Anyhow<ASTStmt> {
+        use crate::token::TokenKind as kind;
+
+        match self.current.kind {
+            kind::Print => {
+                return Ok(ASTStmt::Print(self.parse_print_stmt()?));
+            }
+            kind::Proof => {
+                return Ok(ASTStmt::Proof(self.parse_proof_stmt()?));
+            }
+
+            kind::LeftBrace => {
+                return Ok(ASTStmt::Block(self.parse_block_stmt()?));
+            }
+
+            kind::Semicolon => {
+                return self.parse_null_stmt();
+            }
+            _ => {
+                let expression = self.parse_expression()?;
+                self.expect(kind::Semicolon)?;
+                return Ok(ASTStmt::ExpressionStmt(expression));
+            }
+        }
+    }
+
+    fn parse_null_stmt(&mut self) -> Anyhow<ASTStmt> {
+        use crate::token::TokenKind as kind;
+        self.expect(kind::Semicolon)?;
+        Ok(ASTStmt::Null)
+    }
+
+    fn parse_print_stmt(&mut self) -> Anyhow<ASTPrint> {
+        use crate::token::TokenKind as kind;
+
+        self.look_for(kind::Print)?;
+        let token = Rc::clone(&self.current);
+        self.advance();
+        let expression = self.parse_expression()?;
+        self.expect(kind::Semicolon)?;
+
+        Ok(ASTPrint { token, expression })
+    }
+
+    fn parse_proof_stmt(&mut self) -> Anyhow<ASTProof> {
+        use crate::token::TokenKind as kind;
+
+        self.look_for(kind::Proof)?;
+        let token = Rc::clone(&self.current);
+        self.advance();
+
+        let expression = self.parse_expression()?;
+        self.expect(kind::Semicolon)?;
+
+        Ok(ASTProof { token, expression })
+    }
+
+    fn parse_block_stmt(&mut self) -> Anyhow<ASTBlockStmt> {
+        use crate::token::TokenKind as kind;
+        self.expect(kind::LeftBrace)?;
+        let mut statements = Vec::new();
+        while self.current.kind != kind::RightBrace {
+            statements.push(self.parse_decl_stmt()?);
+        }
+        self.expect(kind::RightBrace)?;
+        Ok(ASTBlockStmt { statements })
     }
 
     fn parse_expression(&mut self) -> Anyhow<ASTExpression> {
@@ -308,8 +370,8 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_implication()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
+                right: std::rc::Rc::new(right),
                 op,
             });
         }
@@ -326,9 +388,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_disjunction()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
 
@@ -344,9 +406,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_conjunction()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
 
@@ -361,9 +423,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_equality()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
 
@@ -380,9 +442,9 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_relation()?;
 
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
 
@@ -403,9 +465,9 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_modulo()?;
 
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
 
@@ -422,9 +484,9 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_term()?;
 
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
         return Ok(left);
@@ -440,9 +502,9 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_factor()?;
 
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
 
@@ -458,9 +520,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_power()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
 
@@ -476,9 +538,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_unary()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::boxed::Box::new(left),
-                right: std::boxed::Box::new(right),
+                left: std::rc::Rc::new(left),
                 op,
+                right: std::rc::Rc::new(right),
             });
         }
         return Ok(left);
@@ -493,7 +555,7 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_unary()?;
             return Ok(ASTExpression::UnaryExpreesion(ASTUnary {
                 op,
-                right: std::boxed::Box::new(right),
+                right: std::rc::Rc::new(right),
             }));
         } else {
             return self.parse_call();
@@ -531,6 +593,14 @@ impl<'a> Parser<'a> {
         };
     }
 
+    pub fn parse_literal(&mut self) -> Anyhow<ASTLiteral> {
+        use crate::token::TokenKind as kind;
+
+        let literal = self.current.literal.clone();
+        self.expect(kind::Literal)?;
+        return Ok(ASTLiteral { literal });
+    }
+
     fn parse_exp_primary(&mut self) -> Anyhow<ASTExpression> {
         use crate::token::TokenKind as kind;
         match self.current.kind {
@@ -539,7 +609,7 @@ impl<'a> Parser<'a> {
                 let res = Ok(self.parse_expression()?)?;
                 self.expect(kind::RightParethesis)?;
                 return Ok(ASTExpression::Group(ASTGroup {
-                    expression: std::boxed::Box::new(res),
+                    expression: std::rc::Rc::new(res),
                 }));
             }
 
@@ -582,6 +652,7 @@ impl<'a> Parser<'a> {
             kind::Literal => {
                 return Ok(ASTExpression::Literal(self.parse_literal()?));
             }
+
             _ => {
                 // TODO: enhance error message
                 return Err(ParserError {
@@ -608,6 +679,23 @@ impl<'a> Parser<'a> {
         Ok(true)
     }
 
+    fn look_for(&mut self, kind: crate::token::TokenKind) -> Anyhow<bool> {
+        if self.current.kind != kind {
+            let msg = std::fmt::format(format_args!(
+                "expected {:?} found {:?}",
+                kind, self.current.kind
+            ));
+
+            self.record_error_current(std::fmt::format(format_args!(
+                "expected {:?} found {:?}",
+                kind, self.current.kind
+            )));
+            return Err(ParserError { msg });
+        }
+
+        Ok(true)
+    }
+
     fn record_error_current(&mut self, msg: String) {
         self.errors.push(std::fmt::format(format_args!(
             "line: {}, column: {} error: {}",
@@ -629,7 +717,7 @@ mod parser_test {
 
                 statement adam_is_first_man = 'the first person' is true ;
                 statement what_eve_heared_first = 'madamimadam' is true ;
-                statement and_everythig_else = ... is true ; 
+                statement and_everythig_else = ... is true ;
 
                 proof adam_is_first_man /\\ eve_is_the_first_woman;
 
@@ -642,23 +730,22 @@ mod parser_test {
         let mut lxr = crate::lexer::Lexer::new(input.as_bytes());
         let mut prsr = super::Parser::new(&mut lxr);
         let sol = prsr.parse_solution();
+        assert_eq!(0, prsr.errors.len());
 
         match sol {
             Ok(ref r) => {
-                for theorem in &r.theorems {
+                for theorem in &r.solutions {
                     println!("{:#?}", theorem);
                 }
             }
 
             Err(_) => {
                 for err in &prsr.errors {
-                    println!("error: {}", err);
+                    println!(">>> error: {}", err);
                 }
+                assert!(false);
             }
         }
 
-        for (k, v) in &prsr.table.table {
-            println!("{}, {:?}", k, v);
-        }
     }
 }

@@ -3,7 +3,7 @@
 //! are defined in this module
 
 /// Kinds of tokens
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Hash, Debug, Clone, PartialEq, Eq)]
 pub enum TokenKind {
     Eof,
     Invalid,
@@ -58,7 +58,7 @@ pub enum TokenKind {
 }
 
 /// Token representation for logican
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Hash, Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub literal: String,
