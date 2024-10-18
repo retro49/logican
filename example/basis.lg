@@ -1,0 +1,31 @@
+// Basic proof of logical equivalences
+theorem basis {
+    // negation unary operator
+    theorem negation {
+        // negation is one of the unary logical operator
+        // let "P" present a statement.
+        statement P = ... is true ; // statement "P" evaluates to true
+        // Then the negation of the statement "P" is written
+        // mathematically ¬P, ~P, !P.
+        // In logican it is written in the third form: !P.
+
+        // proof that statement "P" is true, hence the keyword proof.
+        proof P;
+        // proof that the negation of statement "P' is false with equality test.
+        proof !P == false;
+        // let "Q" present the opposite of "P"
+        statement Q = !P;
+
+        // proof that the opposite of "Q" is "P".
+        // P = true, Q = false.
+        // therefore true == !false
+        proof P == !Q;
+        // Q = false, P = true
+        // therefore false == !true
+        proof Q == !P;
+    }
+
+    theorem conjunction {}
+
+    theorem disjunction {}
+}

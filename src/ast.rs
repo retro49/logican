@@ -1,33 +1,41 @@
+use crate::token::Token;
+
 /**
  * GRAMMAR OF LOGICAN
  * ---------------------------------------
  *
- * SOLUTION            -> THEOREM+;
- * THEOREM             -> "theorem" "{" DECLERATION* "}"
- * DECLERATION         -> THEOREM | STMT |  EMPTY ;
+ * SOLUTION            -> (DECLERATION | STMT)* ;
  *
- * STMTS            -> | STATEMENT_STMT
- *                     | FUNCTION_STMT
- *                     | LET_STMT 
- *                     | CONSTANT_STMT
- *                     | PRINT_STMT
- *                     | EXPRESSION_STMT 
- *                     | PROOF_STMT
- *                     | NULL ;
+ * DECLERATION         -> STATEMENT_DECLERATION
+ *                        | FUNCTION_DECLERATION
+ *                        | LET_DECLERATION
+ *                        | CONSTANT_DECLERATION
+ *                        | THEOREM_DECLERATION
+ *                        ;
  *
- * STATEMENT_STMT      -> "statement" ID "=" STATEMENT_DECL ';' ;
- * FUNCTION_STMT       -> "function" ID "(" PARAMS? ")" = EXPRESSION ;
- * LET_STMT            -> "let" ID "=" EXPRESSION ;
- * CONSTANT_STMT       -> "constant" ID "=" EXPRESSION ;
+ * THEOREM_DECLERATION    -> "theorem" BLOCK ;
+ * STATEMENT_DECLERATION  -> "statement" ID "=" STATEMENT_SPEC_EXPRESSION ";" ;
+ * FUNCTION_DECLERATION   -> "function" ID "(" PARAMS? ")" = EXPRESSION ";" ;
+ * LET_DECLERATION        -> "let" ID "=" EXPRESSION ";" ;
+ * CONSTANT_DECLERATION   -> "constant" ID "=" EXPRESSION ";" ;
+ *
+ * STATEMENT_SPEC_EXPRESSION -> "..." "is" BOOLEAN
+ *                              | STRING "is" BOOLEAN
+ *                              | BOOLEAN ;
+ *
+ * STMT                -> PRINT_STMT
+ *                        | PROOF_STMT
+ *                        | EXPRESSION_STMT
+ *                        | BLOCK
+ *                        ;
+ *
+ * BLOCK               -> "{" (DECLERATION|STMT)* "}" 
  * PRINT_STMT          -> "print" EXPRESSION ;
  * PROOF_STMT          -> "proof" EXPRESSION ;
  * EXPRESSION_STMT     -> EXPRESSION ";" ;
  *
- * STATEMENT_DECL      -> "..." "is" BOOLEAN
- *                     |  STRING "is" BOOLEAN
- *                     | BOOLEAN ;
- *
  * PARAMS              -> ID ("," ID)*
+ *
  * EXPRESSION          -> BI_IMPLICATION;
  * BI_IMPLICATION      -> IMPLICATION ( ("<=>") IMPLICATION)* ;
  * IMPLICATION         -> DISJUNCTION ( ("=>") DISJUNCTION)* ;
@@ -54,25 +62,48 @@
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTSolution {
-    pub theorems: Vec<ASTTheorem>,
+    pub theorems: Vec<ASTDeclStmt>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ASTDeclStmt {
+    Decleration(ASTDecleration),
+    Statement(ASTStatement),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ASTBlockStmt {
+    pub statements: Vec<ASTDeclStmt>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTTheorem {
+    pub token: Token,
     pub theorem_name: ASTLiteral,
-    pub statements: Vec<ASTStmt>,
+    pub statements: Vec<ASTDeclStmt>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ASTProof {
+pub struct ASTStatement {
+    pub token: Token,
+    pub identifier: ASTLiteral,
+    pub decl: ASTStatementSpecExpression,
     pub expression: ASTExpression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ASTStatementDecl {
+pub enum ASTStatementSpecExpression{
     Etcetera,
     String(ASTString),
     None,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ASTFunction {
+    pub token: Token,
+    pub identifier: ASTLiteral,
+    pub params: Vec<ASTParameter>,
+    pub expression: ASTExpression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -80,35 +111,30 @@ pub struct ASTParameter {
     pub literal: ASTLiteral,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct ASTFunction {
-    pub identifier: ASTLiteral,
-    pub params: Vec<ASTParameter>,
-    pub expression: ASTExpression,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ASTStatement {
-    pub identifier: ASTLiteral,
-    pub decl: ASTStatementDecl,
-    pub expression: ASTExpression,
-}
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTLetStmt {
+    pub token: Token,
     pub identifier: ASTLiteral,
     pub expression: ASTExpression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTConstantStmt {
+    pub token: Token,
     pub identifier: ASTLiteral,
     pub expression: ASTExpression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTPrintStmt {
+    pub token: Token,
+    pub expression: ASTExpression,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ASTProof {
+    pub token: Token,
     pub expression: ASTExpression,
 }
 
@@ -177,18 +203,23 @@ pub enum ASTExpression {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ASTStmt {
-    Theorem(ASTTheorem),
-    Let(ASTLetStmt),
-    Constant(ASTConstantStmt),
     Proof(ASTProof),
     Print(ASTPrintStmt),
-    Statement(ASTStatement),
-    Function(ASTFunction),
     Null,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Node {
-    Stmt(ASTStmt),
-    Expr(ASTExpression),
+pub enum ASTDecleration {
+    Theorem(ASTTheorem),
+    Let(ASTLetStmt),
+    Constant(ASTConstantStmt),
+    Statement(ASTStatement),
+    Function(ASTFunction),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ASTNode {
+    Statement(ASTStmt),
+    Decleration(ASTDecleration),
+    Expression(ASTExpression),
 }

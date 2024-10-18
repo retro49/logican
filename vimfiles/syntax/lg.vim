@@ -9,6 +9,7 @@ syn match lgFloat       display "\v<0[Xx][0-9A-Fa-f](_*[0-9A-Fa-f])*\.[0-9A-Fa-f
 syn match lgString      display "\v\"(\\.|[^\\\"])*\""
 syn match lgString      display "\v'(''|.)*'"
 syn region lgComment    display start="\v//"    end="\v$"
+syn keyword lgBuiltinType true false
 
 hi def link lgIdentifier        Identififer
 hi def link lgFunction          Function
@@ -16,6 +17,7 @@ hi def link lgNumber            Number
 hi def link lgFloat             Float
 hi def link lgString            String
 hi def link lgComment           Comment
+hi def link lgBuiltinType       Type
 
 syn keyword lgKeyword
     \ function
@@ -26,8 +28,6 @@ syn keyword lgKeyword
     \ theorem
     \ is
     \ let
-    \ true
-    \ false
 
 hi def link lgKeyword      Keyword
 let b:current_syntax = 'lg'
