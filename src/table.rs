@@ -17,7 +17,7 @@ impl std::default::Default for Type {
 
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct SymbolTable {
     pub table: std::collections::HashMap<std::rc::Rc<crate::token::Token>, Type>,
 }

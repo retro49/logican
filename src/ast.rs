@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::token::Token;
 
@@ -170,26 +171,26 @@ pub struct ASTString {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTGroup {
-    pub expression: std::rc::Rc<ASTExpression>,
+    pub expression: std::rc::Rc<RefCell<ASTExpression>>,
 }
 
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTBinary {
-    pub left: std::rc::Rc<ASTExpression>,
+    pub left: std::rc::Rc<RefCell<ASTExpression>>,
     pub op: crate::token::TokenKind,
-    pub right: std::rc::Rc<ASTExpression>,
+    pub right: std::rc::Rc<RefCell<ASTExpression>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTUnary {
     pub op: crate::token::TokenKind,
-    pub right: std::rc::Rc<ASTExpression>,
+    pub right: std::rc::Rc<RefCell<ASTExpression>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTCall {
-    pub literal: std::rc::Rc<ASTExpression>,
+    pub literal: std::rc::Rc<RefCell<ASTExpression>>,
     pub expressions: Vec<ASTExpression>,
 }
 

@@ -7,3 +7,4 @@ pub mod eval;
 pub mod env;
 pub mod table;
 pub mod fr;
+pub mod interpreter;

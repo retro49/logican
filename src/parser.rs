@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::ast::ASTBinary;
 use crate::ast::ASTBlockStmt;
@@ -41,8 +42,9 @@ impl std::fmt::Display for ParserError {
 
 impl std::error::Error for ParserError {}
 
-type Anyhow<T> = Result<T, ParserError>;
+pub type Anyhow<T> = Result<T, ParserError>;
 
+#[derive(Debug)]
 pub struct Parser<'a> {
     current: Rc<crate::token::Token>,
     peek: Rc<crate::token::Token>,
@@ -370,8 +372,8 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_implication()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
-                right: std::rc::Rc::new(right),
+                left: std::rc::Rc::new(RefCell::new(left)),
+                right: std::rc::Rc::new(RefCell::new(right)),
                 op,
             });
         }
@@ -388,9 +390,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_disjunction()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
 
@@ -406,9 +408,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_conjunction()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
 
@@ -423,9 +425,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_equality()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
 
@@ -442,9 +444,9 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_relation()?;
 
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
 
@@ -465,9 +467,9 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_modulo()?;
 
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
 
@@ -484,9 +486,9 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_term()?;
 
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
         return Ok(left);
@@ -502,9 +504,9 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_factor()?;
 
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
 
@@ -520,9 +522,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_power()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
 
@@ -538,9 +540,9 @@ impl<'a> Parser<'a> {
             self.advance();
             let right = self.parse_exp_unary()?;
             left = ASTExpression::BinaryExpreesion(ASTBinary {
-                left: std::rc::Rc::new(left),
+                left: std::rc::Rc::new(RefCell::new(left)),
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             });
         }
         return Ok(left);
@@ -555,7 +557,7 @@ impl<'a> Parser<'a> {
             let right = self.parse_exp_unary()?;
             return Ok(ASTExpression::UnaryExpreesion(ASTUnary {
                 op,
-                right: std::rc::Rc::new(right),
+                right: std::rc::Rc::new(RefCell::new(right)),
             }));
         } else {
             return self.parse_call();
@@ -580,7 +582,7 @@ impl<'a> Parser<'a> {
                     }
                     self.expect(crate::token::TokenKind::RightParethesis)?;
                     return Ok(crate::ast::ASTExpression::Call(ASTCall {
-                        literal: std::rc::Rc::new(literal_expression),
+                        literal: std::rc::Rc::new(RefCell::new(literal_expression)),
                         expressions,
                     }));
                 } else {
@@ -596,8 +598,9 @@ impl<'a> Parser<'a> {
     pub fn parse_literal(&mut self) -> Anyhow<ASTLiteral> {
         use crate::token::TokenKind as kind;
 
+        self.look_for(kind::Literal)?;
         let literal = self.current.literal.clone();
-        self.expect(kind::Literal)?;
+        self.advance();
         return Ok(ASTLiteral { literal });
     }
 
@@ -609,7 +612,7 @@ impl<'a> Parser<'a> {
                 let res = Ok(self.parse_expression()?)?;
                 self.expect(kind::RightParethesis)?;
                 return Ok(ASTExpression::Group(ASTGroup {
-                    expression: std::rc::Rc::new(res),
+                    expression: std::rc::Rc::new(RefCell::new(res)),
                 }));
             }
 
@@ -708,7 +711,7 @@ impl<'a> Parser<'a> {
 mod parser_test {
     #[test]
     fn proof_test() {
-        let input = "
+        let input = r#"
             theorem genesis {
                 constant first_count = 0 + 0 * 0 / 0 ;
 
@@ -719,13 +722,13 @@ mod parser_test {
                 statement what_eve_heared_first = 'madamimadam' is true ;
                 statement and_everythig_else = ... is true ;
 
-                proof adam_is_first_man /\\ eve_is_the_first_woman;
+                proof adam_is_first_man /\ eve_is_the_first_woman;
 
                 function add_one(x) = x + 1 ;
                 function add_both(x, y) = x + y ;
                 function hyp(x, y, z) = (x^2) + (y^2);
             }
-        ";
+        "#;
 
         let mut lxr = crate::lexer::Lexer::new(input.as_bytes());
         let mut prsr = super::Parser::new(&mut lxr);
