@@ -8,3 +8,4 @@ pub mod env;
 pub mod table;
 pub mod fr;
 pub mod interpreter;
+pub mod error;

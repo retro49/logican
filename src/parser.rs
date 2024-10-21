@@ -350,11 +350,16 @@ impl<'a> Parser<'a> {
 
     fn parse_block_stmt(&mut self) -> Anyhow<ASTBlockStmt> {
         use crate::token::TokenKind as kind;
-        self.expect(kind::LeftBrace)?;
+
+        // self.expect(kind::LeftBrace)?;
+        self.look_for(kind::LeftBrace)?;
+        self.advance();
         let mut statements = Vec::new();
-        while self.current.kind != kind::RightBrace {
+
+        while self.current.kind != kind::RightBrace && self.current.kind != kind::Eof{
             statements.push(self.parse_decl_stmt()?);
         }
+
         self.expect(kind::RightBrace)?;
         Ok(ASTBlockStmt { statements })
     }

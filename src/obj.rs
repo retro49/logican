@@ -16,7 +16,7 @@ impl std::fmt::Display for Object {
             Object::Real(t) => { f.write_fmt(format_args!("{}", t)) }
             Object::String(t) => { f.write_fmt(format_args!("{}", t)) }
             Object::Boolean(t) => { f.write_fmt(format_args!("{}", t)) }
-            Object::Function(literal, _, _) => { f.write_fmt(format_args!("<fn {}>", literal.literal)) }
+            Object::Function(literal, _, _) => { f.write_fmt(format_args!("<function {}>", literal.literal)) }
         }
     }
 }

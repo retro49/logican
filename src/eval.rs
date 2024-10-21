@@ -1,385 +1,408 @@
-// use crate::env::Environment;
-// 
-// #[derive(Debug, Clone)]
-// pub struct EvaluationError {
-//     pub msg: String,
-// }
-// 
-// pub type EvaluationResult<T> = Result<T, EvaluationError>;
-// 
-// pub trait Evaluate<T> {
-//     fn evaluate(&mut self, env: &mut Environment) -> EvaluationResult<T>
-//     where
-//         T: Sized;
-// }
-// 
-// impl Evaluate<crate::obj::Object> for crate::ast::ASTReal {
-//     fn evaluate(&mut self, _env: &mut Environment) -> EvaluationResult<crate::obj::Object> {
-//         return Ok(crate::obj::Object::Real(self.value));
-//     }
-// }
-// 
-// impl Evaluate<crate::obj::Object> for crate::ast::ASTInteger {
-//     fn evaluate(&mut self, _env: &mut Environment) -> EvaluationResult<crate::obj::Object> {
-//         return Ok(crate::obj::Object::Integer(self.value));
-//     }
-// }
-// 
-// impl Evaluate<crate::obj::Object> for crate::ast::ASTBoolean {
-//     fn evaluate(&mut self, _env: &mut Environment) -> EvaluationResult<crate::obj::Object> {
-//         return Ok(crate::obj::Object::Boolean(self.value));
-//     }
-// }
-// 
-// impl Evaluate<crate::obj::Object> for crate::ast::ASTString {
-//     fn evaluate(&mut self, _env: &mut Environment) -> EvaluationResult<crate::obj::Object> {
-//         return Ok(crate::obj::Object::String(self.string.clone()));
-//     }
-// }
-// 
-// impl Evaluate<crate::obj::Object> for crate::ast::ASTUnary {
-//     fn evaluate(&mut self, env: &mut Environment) -> EvaluationResult<crate::obj::Object> {
-//         let right = self.right.evaluate(env)?;
-//         match right {
-//             crate::obj::Object::Real(r) => {
-//                 if self.op == crate::token::TokenKind::Minus {
-//                     return Ok(crate::obj::Object::Real(r * -1f64));
-//                 } else {
-//                     unreachable!()
-//                 }
-//             }
-// 
-//             crate::obj::Object::Integer(i) => {
-//                 if self.op == crate::token::TokenKind::Minus {
-//                     return Ok(crate::obj::Object::Integer(i * -1));
-//                 } else {
-//                     unreachable!()
-//                 }
-//             }
-// 
-//             crate::obj::Object::Boolean(b) => {
-//                 if self.op == crate::token::TokenKind::Negation {
-//                     return Ok(crate::obj::Object::Boolean(!b));
-//                 } else {
-//                     unreachable!()
-//                 }
-//             }
-//             _ => unreachable!(),
-//         };
-//     }
-// }
-// 
-// impl Evaluate<crate::obj::Object> for crate::ast::ASTBinary {
-//     fn evaluate(&mut self, env: &mut Environment) -> EvaluationResult<crate::obj::Object> {
-//         let left = self.left.evaluate(env)?;
-//         let right = self.right.evaluate(env)?;
-//         match (left, right) {
-//             (crate::obj::Object::Integer(i), crate::obj::Object::Integer(j)) => {
-//                 match self.op {
-//                     crate::token::TokenKind::Plus => {
-//                         return Ok(crate::obj::Object::Integer(i + j));
-//                     }
-// 
-//                     crate::token::TokenKind::Minus => {
-//                         return Ok(crate::obj::Object::Integer(i - j));
-//                     }
-// 
-//                     crate::token::TokenKind::Slash => {
-//                         return Ok(crate::obj::Object::Integer(i / j));
-//                     }
-// 
-//                     crate::token::TokenKind::Asterisk => {
-//                         return Ok(crate::obj::Object::Integer(i * j));
-//                     }
-// 
-//                     crate::token::TokenKind::Modulo => {
-//                         return Ok(crate::obj::Object::Integer(i % j));
-//                     }
-// 
-//                     crate::token::TokenKind::Tilde => {
-//                         return Ok(crate::obj::Object::Integer(i.pow(j as u32)));
-//                     }
-// 
-//                     crate::token::TokenKind::LessThan => {
-//                         return Ok(crate::obj::Object::Boolean(i < j));
-//                     }
-// 
-//                     crate::token::TokenKind::LessThanEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i <= j));
-//                     }
-// 
-//                     crate::token::TokenKind::GreaterThan => {
-//                         return Ok(crate::obj::Object::Boolean(i > j));
-//                     }
-// 
-//                     crate::token::TokenKind::GreaterThanEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i >= j));
-//                     }
-// 
-//                     crate::token::TokenKind::Equal => {
-//                         return Ok(crate::obj::Object::Boolean(i == j));
-//                     }
-// 
-//                     crate::token::TokenKind::NotEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i != j));
-//                     }
-// 
-//                     _ => {
-//                         return Err(EvaluationError {
-//                             msg: "Runtime error: invalid operation".to_string(),
-//                         });
-//                     }
-//                 };
-//             }
-// 
-//             (crate::obj::Object::Real(i), crate::obj::Object::Integer(j)) => {
-//                 match self.op {
-//                     crate::token::TokenKind::Plus => {
-//                         return Ok(crate::obj::Object::Real(i + j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::Minus => {
-//                         return Ok(crate::obj::Object::Real(i - j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::Slash => {
-//                         return Ok(crate::obj::Object::Real(i / j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::Asterisk => {
-//                         return Ok(crate::obj::Object::Real(i * j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::LessThan => {
-//                         return Ok(crate::obj::Object::Boolean(i < j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::LessThanEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i <= j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::GreaterThan => {
-//                         return Ok(crate::obj::Object::Boolean(i > j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::GreaterThanEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i >= j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::Equal => {
-//                         return Ok(crate::obj::Object::Boolean(i == j as f64));
-//                     }
-// 
-//                     crate::token::TokenKind::NotEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i != j as f64));
-//                     }
-// 
-//                     _ => {
-//                         unreachable!()
-//                     }
-//                 };
-//             }
-// 
-//             (crate::obj::Object::Integer(i), crate::obj::Object::Real(j)) => {
-//                 match self.op {
-//                     crate::token::TokenKind::Plus => {
-//                         return Ok(crate::obj::Object::Real(i as f64 + j));
-//                     }
-// 
-//                     crate::token::TokenKind::Minus => {
-//                         return Ok(crate::obj::Object::Real(i as f64 - j ));
-//                     }
-// 
-//                     crate::token::TokenKind::Slash => {
-//                         return Ok(crate::obj::Object::Real(i as f64 / j ));
-//                     }
-// 
-//                     crate::token::TokenKind::Asterisk => {
-//                         return Ok(crate::obj::Object::Real(i as f64 * j ));
-//                     }
-// 
-//                     crate::token::TokenKind::LessThan => {
-//                         return Ok(crate::obj::Object::Boolean((i as f64) < j));
-//                     }
-// 
-//                     crate::token::TokenKind::LessThanEqual => {
-//                         return Ok(crate::obj::Object::Boolean((i as f64) <= j ));
-//                     }
-// 
-//                     crate::token::TokenKind::GreaterThan => {
-//                         return Ok(crate::obj::Object::Boolean((i as f64) > j ));
-//                     }
-// 
-//                     crate::token::TokenKind::GreaterThanEqual => {
-//                         return Ok(crate::obj::Object::Boolean((i as f64) >= j));
-//                     }
-// 
-//                     crate::token::TokenKind::Equal => {
-//                         return Ok(crate::obj::Object::Boolean((i as f64) == j));
-//                     }
-// 
-//                     crate::token::TokenKind::NotEqual => {
-//                         return Ok(crate::obj::Object::Boolean((i as f64) != j));
-//                     }
-// 
-//                     _ => {
-//                         unreachable!()
-//                     }
-//                 };
-//             }
-// 
-//             (crate::obj::Object::Real(i), crate::obj::Object::Real(j)) => {
-//                 match self.op {
-//                     crate::token::TokenKind::Plus => {
-//                         return Ok(crate::obj::Object::Real(i + j));
-//                     }
-// 
-//                     crate::token::TokenKind::Minus => {
-//                         return Ok(crate::obj::Object::Real(i - j ));
-//                     }
-// 
-//                     crate::token::TokenKind::Slash => {
-//                         return Ok(crate::obj::Object::Real(i / j ));
-//                     }
-// 
-//                     crate::token::TokenKind::Asterisk => {
-//                         return Ok(crate::obj::Object::Real(i * j ));
-//                     }
-// 
-//                     crate::token::TokenKind::LessThan => {
-//                         return Ok(crate::obj::Object::Boolean(i < j));
-//                     }
-// 
-//                     crate::token::TokenKind::LessThanEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i <= j));
-//                     }
-// 
-//                     crate::token::TokenKind::GreaterThan => {
-//                         return Ok(crate::obj::Object::Boolean(i > j));
-//                     }
-// 
-//                     crate::token::TokenKind::GreaterThanEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i >= j));
-//                     }
-// 
-//                     crate::token::TokenKind::Equal => {
-//                         return Ok(crate::obj::Object::Boolean(i == j));
-//                     }
-// 
-//                     crate::token::TokenKind::NotEqual => {
-//                         return Ok(crate::obj::Object::Boolean(i != j));
-//                     }
-// 
-//                     _ => {
-//                         unreachable!()
-//                     }
-//                 };
-//             }
-// 
-//             (crate::obj::Object::Boolean(l), crate::obj::Object::Boolean(r)) => {
-//                 match self.op {
-//                     crate::token::TokenKind::Equal => {
-//                         return Ok(crate::obj::Object::Boolean(l == r)); 
-//                     }
-// 
-//                     crate::token::TokenKind::NotEqual => {
-//                         return Ok(crate::obj::Object::Boolean(l != r));
-//                     }
-// 
-//                     crate::token::TokenKind::Conjunction => {
-//                         return Ok(crate::obj::Object::Boolean(l && r));
-//                     }
-// 
-//                     crate::token::TokenKind::Disjunction => {
-//                         return Ok(crate::obj::Object::Boolean(l || r));
-//                     }
-// 
-//                     crate::token::TokenKind::Implication => {
-//                         if l == true && r == false {
-//                             return Ok(crate::obj::Object::Boolean(false));
-//                         } else {
-//                             return Ok(crate::obj::Object::Boolean(true));
-//                         }
-//                     }
-// 
-//                     crate::token::TokenKind::BiImplication => {
-//                         if (l == true && r == true) || (l == false && r == false) {
-//                             return Ok(crate::obj::Object::Boolean(true));
-//                         } else {
-//                             return Ok(crate::obj::Object::Boolean(false));
-//                         }
-// 
-//                     }
-// 
-//                     _ => { unreachable!()}
-//                 };
-//             }
-// 
-//             (_, _) => {
-//                 unreachable!()
-//             }
-//         }
-//     }
-// }
-// 
-// impl Evaluate<crate::obj::Object> for crate::ast::ASTExpression {
-//     fn evaluate(&mut self, env: &mut Environment) -> EvaluationResult<crate::obj::Object> {
-//         match self {
-//             crate::ast::ASTExpression::BinaryExpreesion(bin) => { return bin.evaluate(env); }
-//             crate::ast::ASTExpression::UnaryExpreesion(u) => { return u.evaluate(env); }
-//             crate::ast::ASTExpression::Boolean(b) => { return b.evaluate(env); }
-//             crate::ast::ASTExpression::Real(r) => { return r.evaluate(env); }
-//             crate::ast::ASTExpression::Integer(i) => { return i.evaluate(env); }
-//             crate::ast::ASTExpression::String(s) => { return s.evaluate(env); }
-//             crate::ast::ASTExpression::Group(g) => { return g.expression.evaluate(env); }
-// 
-//             crate::ast::ASTExpression::Literal(l) => {
-//                 if env.env.contains_key(&l.literal) {
-//                     return Ok(env.env.get(&l.literal).unwrap().clone());
-//                 } else {
-//                     panic!("unkown literal, {}", l.literal);
-//                 }
-//             }
-//             crate::ast::ASTExpression::Call(ref call) => {
-//                 match &call.literal.as_ref() {
-//                     crate::ast::ASTExpression::Literal(ref _lit) => {
-//                         let function = env.get(&_lit.literal).cloned().unwrap();
-//                         match &function {
-//                             crate::obj::Object::Function(ref _lit, ref params, ref exp) => {
-//                                 if call.expressions.len() != (&params).len() {
-//                                     unreachable!()
-//                                 }
-//                                 let mut fn_env = Environment::default();
-//                                 let len = call.expressions.len();
-//                                 for i in 0..len {
-//                                     let exp_pos = &call.expressions[i]
-//                                         .clone()
-//                                         .evaluate(env)
-//                                         .unwrap();
-// 
-//                                     let par_name = (&params[i]).literal.literal.clone();
-//                                     fn_env.env.insert(par_name, exp_pos.clone());
-//                                 }
-//                                 let res = exp.clone().evaluate(&mut fn_env);
-//                                 return res;
-//                             }
-// 
-//                             _ => {
-//                                 unreachable!()
-//                             }
-//                         };
-//                     }
-//                     _ => {
-//                     }
-//                 };
-//                 unreachable!()
-//             }
-//         };
-//     }
-// }
+use crate::error::Anyhow;
+use crate::env::Environment;
+
+#[derive(Debug, Clone)]
+pub struct EvaluationError {
+    pub msg: String,
+}
+impl std::fmt::Display for EvaluationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("EvaluationError {{ error: {} }}", self.msg))
+    }
+}
+
+impl std::error::Error for EvaluationError{}
+
+pub trait Evaluate<T> {
+    fn evaluate(&mut self, env: *mut Environment) -> Anyhow<T>
+    where
+        T: Sized;
+}
+
+impl Evaluate<crate::obj::Object> for crate::ast::ASTReal {
+    fn evaluate(&mut self, _env: *mut Environment) -> Anyhow<crate::obj::Object> {
+        return Ok(crate::obj::Object::Real(self.value));
+    }
+}
+
+impl Evaluate<crate::obj::Object> for crate::ast::ASTInteger {
+    fn evaluate(&mut self, _env: *mut Environment) -> Anyhow<crate::obj::Object> {
+        return Ok(crate::obj::Object::Integer(self.value));
+    }
+}
+
+impl Evaluate<crate::obj::Object> for crate::ast::ASTBoolean {
+    fn evaluate(&mut self, _env: *mut Environment) -> Anyhow<crate::obj::Object> {
+        return Ok(crate::obj::Object::Boolean(self.value));
+    }
+}
+
+impl Evaluate<crate::obj::Object> for crate::ast::ASTString {
+    fn evaluate(&mut self, _env: *mut Environment) -> Anyhow<crate::obj::Object> {
+        return Ok(crate::obj::Object::String(self.string.clone()));
+    }
+}
+
+impl Evaluate<crate::obj::Object> for crate::ast::ASTUnary {
+    fn evaluate(&mut self, env: *mut Environment) -> Anyhow<crate::obj::Object> {
+        let mut rr = self.right.borrow_mut();
+        let right = rr.evaluate(env)?;
+        match right {
+            crate::obj::Object::Real(r) => {
+                if self.op == crate::token::TokenKind::Minus {
+                    return Ok(crate::obj::Object::Real(r * -1f64));
+                } else {
+                    unreachable!()
+                }
+            }
+
+            crate::obj::Object::Integer(i) => {
+                if self.op == crate::token::TokenKind::Minus {
+                    return Ok(crate::obj::Object::Integer(i * -1));
+                } else {
+                    unreachable!()
+                }
+            }
+
+            crate::obj::Object::Boolean(b) => {
+                if self.op == crate::token::TokenKind::Negation {
+                    return Ok(crate::obj::Object::Boolean(!b));
+                } else {
+                    unreachable!()
+                }
+            }
+            _ => unreachable!(),
+        };
+    }
+}
+
+impl Evaluate<crate::obj::Object> for crate::ast::ASTBinary {
+    fn evaluate(&mut self, env: *mut Environment) -> Anyhow<crate::obj::Object> {
+        let mut ll = self.left.borrow_mut();
+        let mut rr = self.right.borrow_mut();
+
+        let left = ll.evaluate(env)?;
+        let right = rr.evaluate(env)?;
+
+        match (left, right) {
+            (crate::obj::Object::Integer(i), crate::obj::Object::Integer(j)) => {
+                match self.op {
+                    crate::token::TokenKind::Plus => {
+                        return Ok(crate::obj::Object::Integer(i + j));
+                    }
+
+                    crate::token::TokenKind::Minus => {
+                        return Ok(crate::obj::Object::Integer(i - j));
+                    }
+
+                    crate::token::TokenKind::Slash => {
+                        return Ok(crate::obj::Object::Integer(i / j));
+                    }
+
+                    crate::token::TokenKind::Asterisk => {
+                        return Ok(crate::obj::Object::Integer(i * j));
+                    }
+
+                    crate::token::TokenKind::Modulo => {
+                        return Ok(crate::obj::Object::Integer(i % j));
+                    }
+
+                    crate::token::TokenKind::Tilde => {
+                        return Ok(crate::obj::Object::Integer(i.pow(j as u32)));
+                    }
+
+                    crate::token::TokenKind::LessThan => {
+                        return Ok(crate::obj::Object::Boolean(i < j));
+                    }
+
+                    crate::token::TokenKind::LessThanEqual => {
+                        return Ok(crate::obj::Object::Boolean(i <= j));
+                    }
+
+                    crate::token::TokenKind::GreaterThan => {
+                        return Ok(crate::obj::Object::Boolean(i > j));
+                    }
+
+                    crate::token::TokenKind::GreaterThanEqual => {
+                        return Ok(crate::obj::Object::Boolean(i >= j));
+                    }
+
+                    crate::token::TokenKind::Equal => {
+                        return Ok(crate::obj::Object::Boolean(i == j));
+                    }
+
+                    crate::token::TokenKind::NotEqual => {
+                        return Ok(crate::obj::Object::Boolean(i != j));
+                    }
+
+                    _ => {
+                        return Err(Box::new(EvaluationError{ 
+                            msg: "Runtime error: invalid operation".to_string(),
+                        }));
+                    }
+                };
+            }
+
+            (crate::obj::Object::Real(i), crate::obj::Object::Integer(j)) => {
+                match self.op {
+                    crate::token::TokenKind::Plus => {
+                        return Ok(crate::obj::Object::Real(i + j as f64));
+                    }
+
+                    crate::token::TokenKind::Minus => {
+                        return Ok(crate::obj::Object::Real(i - j as f64));
+                    }
+
+                    crate::token::TokenKind::Slash => {
+                        return Ok(crate::obj::Object::Real(i / j as f64));
+                    }
+
+                    crate::token::TokenKind::Asterisk => {
+                        return Ok(crate::obj::Object::Real(i * j as f64));
+                    }
+
+                    crate::token::TokenKind::LessThan => {
+                        return Ok(crate::obj::Object::Boolean(i < j as f64));
+                    }
+
+                    crate::token::TokenKind::LessThanEqual => {
+                        return Ok(crate::obj::Object::Boolean(i <= j as f64));
+                    }
+
+                    crate::token::TokenKind::GreaterThan => {
+                        return Ok(crate::obj::Object::Boolean(i > j as f64));
+                    }
+
+                    crate::token::TokenKind::GreaterThanEqual => {
+                        return Ok(crate::obj::Object::Boolean(i >= j as f64));
+                    }
+
+                    crate::token::TokenKind::Equal => {
+                        return Ok(crate::obj::Object::Boolean(i == j as f64));
+                    }
+
+                    crate::token::TokenKind::NotEqual => {
+                        return Ok(crate::obj::Object::Boolean(i != j as f64));
+                    }
+
+                    _ => {
+                        unreachable!()
+                    }
+                };
+            }
+
+            (crate::obj::Object::Integer(i), crate::obj::Object::Real(j)) => {
+                match self.op {
+                    crate::token::TokenKind::Plus => {
+                        return Ok(crate::obj::Object::Real(i as f64 + j));
+                    }
+
+                    crate::token::TokenKind::Minus => {
+                        return Ok(crate::obj::Object::Real(i as f64 - j ));
+                    }
+
+                    crate::token::TokenKind::Slash => {
+                        return Ok(crate::obj::Object::Real(i as f64 / j ));
+                    }
+
+                    crate::token::TokenKind::Asterisk => {
+                        return Ok(crate::obj::Object::Real(i as f64 * j ));
+                    }
+
+                    crate::token::TokenKind::LessThan => {
+                        return Ok(crate::obj::Object::Boolean((i as f64) < j));
+                    }
+
+                    crate::token::TokenKind::LessThanEqual => {
+                        return Ok(crate::obj::Object::Boolean((i as f64) <= j ));
+                    }
+
+                    crate::token::TokenKind::GreaterThan => {
+                        return Ok(crate::obj::Object::Boolean((i as f64) > j ));
+                    }
+
+                    crate::token::TokenKind::GreaterThanEqual => {
+                        return Ok(crate::obj::Object::Boolean((i as f64) >= j));
+                    }
+
+                    crate::token::TokenKind::Equal => {
+                        return Ok(crate::obj::Object::Boolean((i as f64) == j));
+                    }
+
+                    crate::token::TokenKind::NotEqual => {
+                        return Ok(crate::obj::Object::Boolean((i as f64) != j));
+                    }
+
+                    _ => {
+                        unreachable!()
+                    }
+                };
+            }
+
+            (crate::obj::Object::Real(i), crate::obj::Object::Real(j)) => {
+                match self.op {
+                    crate::token::TokenKind::Plus => {
+                        return Ok(crate::obj::Object::Real(i + j));
+                    }
+
+                    crate::token::TokenKind::Minus => {
+                        return Ok(crate::obj::Object::Real(i - j ));
+                    }
+
+                    crate::token::TokenKind::Slash => {
+                        return Ok(crate::obj::Object::Real(i / j ));
+                    }
+
+                    crate::token::TokenKind::Asterisk => {
+                        return Ok(crate::obj::Object::Real(i * j ));
+                    }
+
+                    crate::token::TokenKind::LessThan => {
+                        return Ok(crate::obj::Object::Boolean(i < j));
+                    }
+
+                    crate::token::TokenKind::LessThanEqual => {
+                        return Ok(crate::obj::Object::Boolean(i <= j));
+                    }
+
+                    crate::token::TokenKind::GreaterThan => {
+                        return Ok(crate::obj::Object::Boolean(i > j));
+                    }
+
+                    crate::token::TokenKind::GreaterThanEqual => {
+                        return Ok(crate::obj::Object::Boolean(i >= j));
+                    }
+
+                    crate::token::TokenKind::Equal => {
+                        return Ok(crate::obj::Object::Boolean(i == j));
+                    }
+
+                    crate::token::TokenKind::NotEqual => {
+                        return Ok(crate::obj::Object::Boolean(i != j));
+                    }
+
+                    _ => {
+                        unreachable!()
+                    }
+                };
+            }
+
+            (crate::obj::Object::Boolean(l), crate::obj::Object::Boolean(r)) => {
+                match self.op {
+                    crate::token::TokenKind::Equal => {
+                        return Ok(crate::obj::Object::Boolean(l == r)); 
+                    }
+
+                    crate::token::TokenKind::NotEqual => {
+                        return Ok(crate::obj::Object::Boolean(l != r));
+                    }
+
+                    crate::token::TokenKind::Conjunction => {
+                        return Ok(crate::obj::Object::Boolean(l && r));
+                    }
+
+                    crate::token::TokenKind::Disjunction => {
+                        return Ok(crate::obj::Object::Boolean(l || r));
+                    }
+
+                    crate::token::TokenKind::Implication => {
+                        if l == true && r == false {
+                            return Ok(crate::obj::Object::Boolean(false));
+                        } else {
+                            return Ok(crate::obj::Object::Boolean(true));
+                        }
+                    }
+
+                    crate::token::TokenKind::BiImplication => {
+                        if (l == true && r == true) || (l == false && r == false) {
+                            return Ok(crate::obj::Object::Boolean(true));
+                        } else {
+                            return Ok(crate::obj::Object::Boolean(false));
+                        }
+
+                    }
+
+                    _ => { unreachable!()}
+                };
+            }
+
+            (_, _) => {
+                unreachable!()
+            }
+        }
+    }
+}
+
+impl Evaluate<crate::obj::Object> for crate::ast::ASTExpression {
+    fn evaluate(&mut self, env: *mut Environment) -> Anyhow<crate::obj::Object> {
+        match self {
+            crate::ast::ASTExpression::BinaryExpreesion(bin) => { return bin.evaluate(env); }
+            crate::ast::ASTExpression::UnaryExpreesion(u) => { return u.evaluate(env); }
+            crate::ast::ASTExpression::Boolean(b) => { return b.evaluate(env); }
+            crate::ast::ASTExpression::Real(r) => { return r.evaluate(env); }
+            crate::ast::ASTExpression::Integer(i) => { return i.evaluate(env); }
+            crate::ast::ASTExpression::String(s) => { return s.evaluate(env); }
+            crate::ast::ASTExpression::Group(g) => { 
+                let mut r = g.expression.borrow_mut();
+                return r.evaluate(env);
+            }
+
+            crate::ast::ASTExpression::Literal(l) => {
+                // let res = env.get(&l.literal);
+                unsafe {
+                    let res = env.as_mut().unwrap().get(&l.literal);
+                    match res {
+                        Some(r) => { return Ok(r.clone()); }
+                        None => {
+                            // TODO: enhance error
+                            panic!("unkown literal, {}", l.literal);
+                        }
+                    };
+                }
+            }
+            /*
+            crate::ast::ASTExpression::Call(ref call) => {
+                match &call.literal.as_ref() {
+                    crate::ast::ASTExpression::Literal(ref _lit) => {
+                        let function = env.get(&_lit.literal).cloned().unwrap();
+                        match &function {
+                            crate::obj::Object::Function(ref _lit, ref params, ref exp) => {
+                                if call.expressions.len() != (&params).len() {
+                                    unreachable!()
+                                }
+                                let mut fn_env = Environment::default();
+                                let len = call.expressions.len();
+                                for i in 0..len {
+                                    let exp_pos = &call.expressions[i]
+                                        .clone()
+                                        .evaluate(env)
+                                        .unwrap();
+
+                                    let par_name = (&params[i]).literal.literal.clone();
+                                    fn_env.env.insert(par_name, exp_pos.clone());
+                                }
+                                let res = exp.clone().evaluate(&mut fn_env);
+                                return res;
+                            }
+
+                            _ => {
+                                unreachable!()
+                            }
+                        };
+                    }
+                    _ => {
+                    }
+                };
+                unreachable!()
+            }
+            */
+            _ => { unreachable!() }
+        };
+    }
+}
 // 
 // impl Evaluate<crate::obj::Object> for crate::ast::ASTStmt {
-//     fn evaluate(&mut self, env: &mut Environment) -> EvaluationResult<crate::obj::Object> {
+//     fn evaluate(&mut self, env: &mut Environment) -> Anyhow<crate::obj::Object> {
 //         match self {
 //             crate::ast::ASTStmt::Statement(s) => { 
 //                 let exp = s.expression.evaluate(env)?;

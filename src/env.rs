@@ -1,53 +1,54 @@
-#[derive(Debug, PartialEq)]
-pub struct Environment<'a> {
+use crate::obj::Object;
+
+pub struct Environment {
     pub env: std::collections::HashMap<String, crate::obj::Object>,
-    pub enclosing: Option<&'a mut Environment<'a>>,
+    pub enclosing: *mut Environment,
 }
 
-impl<'a> Default for Environment<'a>{
+impl std::default::Default for Environment {
     fn default() -> Self {
-        let env = std::collections::HashMap::new();
-        // add some default properties here, or provide an interface
-        Environment{ env, enclosing: None }
+        Environment{
+            env: std::collections::HashMap::new(),
+            enclosing: std::ptr::null_mut(),
+        }
     }
 }
 
-impl<'a> Environment<'a> {
-    pub fn new() -> Environment<'a> {
-        let env = std::collections::HashMap::new();
-        Environment{ env, enclosing: None }
+impl Environment {
+    pub fn contains(&self, key: &String) -> bool {
+        self.env.contains_key(key)
     }
 
-    pub fn from(enclosing: &'a mut Environment<'a>) -> Environment<'a> {
+    pub fn contains_enclose(&self, key: &String) -> bool {
+        if self.contains(key) {
+            return true;
+        }
+        return false;
+    }
+
+    pub fn from(enclosing: *mut Environment) -> Environment {
         Environment {
             env: std::collections::HashMap::new(),
-            enclosing: Some(enclosing)
+            enclosing
         }
     }
 
-    pub fn get(&mut self, what: &String) -> Option<&crate::obj::Object> {
-        if self.env.contains_key(what) {
-            return self.env.get(what);
-        } else {
-            match &mut self.enclosing {
-                None => { return None; }
-                Some(s) => {
-                    return s.get(what);
-                }
-            };
-        }
+    pub fn set(&mut self, key: String, obj: Object) {
+        self.env.insert(key, obj);
     }
 
-    pub fn set(&mut self, name: String, value: crate::obj::Object) {
-        if self.env.contains_key(&name) {
-            self.env.insert(name, value);
-        } else {
-            match &mut self.enclosing {
-                None => { return; }
-                Some(e) => {
-                    e.set(name, value);
-                }
-            };
+    pub fn get(&mut self, key: &String) -> Option<&Object> {
+        if self.contains(key) { 
+            return self.env.get(key);
+        }
+
+        if self.enclosing == std::ptr::null_mut() {
+            return None;
+        }
+
+        unsafe {
+            let r = self.enclosing.as_mut().unwrap().get(key);
+            return r;
         }
     }
 }
