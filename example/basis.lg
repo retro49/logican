@@ -25,7 +25,73 @@ theorem basis {
         proof Q == !P;
     }
 
-    theorem conjunction {}
+    /// conjunction binary operator
+    theorem conjunction {
+        /// conjunction operation
+        /// P /\ Q is true only when both the value of "P" and "Q"
+        /// is true otherwise for any combination it is false
 
-    theorem disjunction {}
+        /// T /\ T == T
+        /// P = T, Q = T
+        /// P /\ Q == T
+        statement P = true;
+        statement Q = true;
+        proof (P /\ Q) == true;
+
+        /// T /\ F == F
+        /// P = T, Q = F
+        /// P /\ Q == F
+        statement P = true;
+        statement Q = false;
+        proof (P /\ Q) == false;
+
+        /// F /\ T == F
+        /// P = F, Q = T
+        /// P /\ Q == F
+        statement P = false;
+        statement Q = true;
+        proof (P /\ Q) == false;
+
+        /// F /\ F == F
+        /// P = F, Q = F
+        /// P /\ Q == F
+        statement P = false;
+        statement Q = false;
+        proof (P /\ Q) == false;
+    }
+
+    /// disjunction binary operator
+    theorem disjunction {
+        /// disjunction binary boolean operation
+        /// written mathematically as " ∨ " and \/ in logican
+        /// P ∨ Q is only false if both P and Q are false
+        
+        /// T \/ T == T
+        /// P = T, Q = T
+        /// P \/ Q == T
+        statement P = true;
+        statement Q = true;
+        proof (P \/ Q) == true;
+
+        /// T \/ F == T
+        /// P = T, Q = F
+        /// P \/ Q == T
+        statement P = true;
+        statement Q = false;
+        proof (P \/ Q) == true;
+
+        /// F \/ T == T
+        /// P = F, Q = T
+        /// P \/ Q == T
+        statement P = false;
+        statement Q = true;
+        proof (P \/ Q) == true;
+
+        /// F \/ F == F
+        /// P = F, Q = F
+        /// P \/ Q == F
+        statement P = false;
+        statement Q = false;
+        proof (P \/ Q) == false;
+    }
 }

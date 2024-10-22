@@ -7,8 +7,9 @@ pub struct Environment {
 
 impl std::default::Default for Environment {
     fn default() -> Self {
+        let env = std::collections::HashMap::new();
         Environment{
-            env: std::collections::HashMap::new(),
+            env,
             enclosing: std::ptr::null_mut(),
         }
     }
@@ -23,7 +24,14 @@ impl Environment {
         if self.contains(key) {
             return true;
         }
-        return false;
+
+        if self.enclosing == std::ptr::null_mut() {
+            return false;
+        }
+
+        unsafe {
+            return self.enclosing.as_mut().unwrap().contains_enclose(key);
+        }
     }
 
     pub fn from(enclosing: *mut Environment) -> Environment {

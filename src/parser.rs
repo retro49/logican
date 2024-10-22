@@ -606,7 +606,7 @@ impl<'a> Parser<'a> {
         self.look_for(kind::Literal)?;
         let literal = self.current.literal.clone();
         self.advance();
-        return Ok(ASTLiteral { literal });
+        return Ok(ASTLiteral { token: Rc::clone(&self.current), literal });
     }
 
     fn parse_exp_primary(&mut self) -> Anyhow<ASTExpression> {

@@ -10,6 +10,9 @@ theorem genesis {
     constant unequal = var_1 < var_2;
 
     function is_zero(x) = x == 0;
+    /// function is_zero(0) = true ;
+    /// function is_zero(x) = false;
+
     function is_one(x) = x == 1;
     function f(x) = x + 1;
     function opposite(x) = !x;

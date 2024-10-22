@@ -1,19 +1,20 @@
 use crate::ast::ASTBlockStmt;
+use crate::ast::ASTFunction;
 use crate::ast::ASTPrint;
 use crate::ast::ASTProof;
 use crate::ast::ASTStatement;
+use crate::ast::ASTTheorem;
 use crate::error::Anyhow;
-
-use crate::eval::Evaluate;
-
-use crate::obj::Object;
-use crate::parser::Parser;
-
 use crate::ast::ASTConstant;
 use crate::ast::ASTDeclStmt;
 use crate::ast::ASTDecleration;
 use crate::ast::ASTLet;
 use crate::ast::ASTStmt;
+
+use crate::eval::Evaluate;
+
+use crate::obj::Object;
+use crate::parser::Parser;
 
 use crate::env::Environment;
 
@@ -69,20 +70,25 @@ impl<'a> Interpreter<'a> {
 
     fn interpret_decl(decl: &mut ASTDecleration, env: *mut Environment) -> Anyhow<()> {
         match decl {
-            ASTDecleration::Let(l) => {
-                return Interpreter::interpret_let_decl(l, env);
-            }
-
-            ASTDecleration::Constant(c) => {
-                return Interpreter::interpret_const_decl(c, env);
-            }
-            ASTDecleration::Statement(s) => {
-                return Interpreter::interpert_statement_stmt(s, env);
-            }
-            _ => {}
+            ASTDecleration::Let(l) => { return Interpreter::interpret_let_decl(l, env); }
+            ASTDecleration::Constant(c) => { return Interpreter::interpret_const_decl(c, env); }
+            ASTDecleration::Statement(s) => { return Interpreter::interpert_statement_stmt(s, env); }
+            ASTDecleration::Theorem(t) => { return Interpreter::interpret_theorem(t, env); }
+            ASTDecleration::Function(f) => { return Interpreter::interpret_function_decl(f, env); }
         };
+    }
 
-        return Ok(());
+    fn interpret_theorem(t: &mut ASTTheorem, env: *mut Environment) -> Anyhow<()> {
+        unsafe {
+            if env.as_ref().unwrap().contains_enclose(&t.theorem_name.literal) {
+                panic!("theorem \"{}\" on line: {} column: {}, is defined again", &t.theorem_name.literal, t.token.line, t.token.column);
+            }
+
+            env.as_mut().unwrap().set(t.theorem_name.literal.clone(), Object::Theorem(t.theorem_name.literal.clone()));
+            let mut new_env = Environment::from(env);
+            Interpreter::interpret_block_stmt(&mut t.block, &mut new_env)?;
+            return Ok(());
+        }
     }
 
     fn interpret_let_decl(l: &mut ASTLet, env: *mut Environment) -> Anyhow<()> {
@@ -96,7 +102,7 @@ impl<'a> Interpreter<'a> {
     fn interpret_const_decl(c: &mut ASTConstant, env: *mut Environment) -> Anyhow<()> {
         unsafe {
             if env.as_ref().unwrap().contains(&c.identifier.literal) {
-                panic!("constant \"{}\" on line: {} column: {}, is already defined", &c.identifier.literal, c.token.line, c.token.column);
+                panic!("constant \"{}\" on line: {} column: {}, is defined again", &c.identifier.literal, c.token.line, c.token.column);
             }
 
             let value = c.expression.evaluate(env)?;
@@ -104,6 +110,13 @@ impl<'a> Interpreter<'a> {
             return Ok(());
 
         }
+    }
+
+    fn interpret_function_decl(f: &mut ASTFunction, env: *mut Environment) -> Anyhow<()> {
+        unsafe {
+            env.as_mut().unwrap().set(f.identifier.literal.clone(), Object::Function(f.identifier.clone(), f.params.clone(), f.expression.clone()));
+        }
+        return Ok(());
     }
 
     fn interpert_statement_stmt(s: &mut ASTStatement, env: *mut Environment) -> Anyhow<()> {
@@ -129,12 +142,11 @@ impl<'a> Interpreter<'a> {
         };
     }
 
+
     fn interpret_stmt(stmt: &mut ASTStmt, env: *mut Environment) -> Anyhow<()> {
         match stmt {
             ASTStmt::Null => {return Ok(()); }
             ASTStmt::ExpressionStmt(s) => { 
-                // TODO:
-                // could set an option to this
                 let exp = s.evaluate(env)?;
                 println!("{}", exp);
                 return Ok(());

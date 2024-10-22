@@ -1,0 +1,78 @@
+/// SOURCE: Introduction to Mathematical Proofs second edition
+/// AUTHOR: Charles E. Roberts, Jr.
+/// Example 1.2.1 Given that A and B are true statements and that C and
+/// D are false statements, use the definitions of ¬ , ∧ , and ∨ to determine the
+/// truth value of each of the statements:
+/// a. (¬ A) ∧ B
+/// b. ¬ (A ∧ B)
+/// c. (¬ A) ∨ B
+/// d. ¬ (A ∨ C)
+/// e. (A ∨ C) ∧ (B ∧(¬ D))
+
+/// Given statements
+statement A = ... is true;
+statement B = ... is true;
+statement C = ... is false;
+statement D = ... is false;
+/// using the definitions of ¬ , ∧ , and ∨ 
+
+/// SOLUTION:
+
+/// a. (¬ A) ∧ B
+{
+    //// A = true       /// given
+    proof A == true;    /// proof of A is true
+                        /// !A = false      /// negation of A is false
+    proof !A == false;  /// proof of negation of true is false and since A 
+                        /// is true negation of A is false
+
+    proof B == true;    /// proof of B is true
+                        /// (!A) /\ B               /// given statement
+                        /// false /\ true = false   
+    proof ((!A) /\ B) == false; /// proof
+}
+
+/// b. ¬ (A ∧ B)
+{
+    /// A = true
+    /// B = true
+    proof A == true;    /// proof of A is true
+    proof B == true;    /// proof of B is true
+                        /// (A /\ B) 
+                        /// (T /\ T) == T
+    proof (A /\ B) == true;
+    /// t1 = (A /\ B)
+    let t1 = (A /\ B); /// t1 == T
+    /// !(A /\ B)
+    let t1 = !t1;
+    proof t1 == false;
+    proof (!(A /\ B)) == t1; /// proof
+}
+
+/// e. (A ∨ C) ∧ (B ∧(¬ D))
+{
+    /// left hand side
+    /// A = true
+    proof A == true;
+    /// C = false
+    proof C == false;
+    let left = A \/ C;
+    /// T \/ F == T
+    proof left == true;
+
+    /// right hand side
+    /// B = true
+    proof B == true;
+    /// D = false
+    proof D == false;
+    /// !D = T
+    proof (!D) == true;
+    let right = B /\ (!D);
+    /// B /\ (!D)
+    /// T /\ T = T
+    proof right == true;
+
+    /// left /\ right 
+    /// T /\ T
+    proof (left /\ right) == ((A \/ C) /\ (B /\ (!D)));
+}

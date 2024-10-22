@@ -98,7 +98,7 @@ pub struct ASTStatement {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ASTStatementSpecExpression{
+pub enum ASTStatementSpecExpression {
     Etcetera,
     String(ASTExpression),
     None,
@@ -146,6 +146,7 @@ pub struct ASTProof {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ASTLiteral {
+    pub token: Rc<Token>,
     pub literal: String,
 }
 

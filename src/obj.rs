@@ -5,7 +5,7 @@ pub enum Object {
     Real(f64),
     String(std::string::String),
     Boolean(bool),
-    Function(crate::ast::ASTLiteral,  Vec<crate::ast::ASTParameter>, crate::ast::ASTExpression),
+    Function(crate::ast::ASTLiteral, Vec<crate::ast::ASTParameter>, crate::ast::ASTExpression),
 }
 
 impl std::fmt::Display for Object {
